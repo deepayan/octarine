@@ -1,0 +1,137 @@
+
+function init(){
+    if (document.getElementById('octarine-video-container')){
+	alert('Octarine already running.');
+	return;
+    }
+
+    const cont = document.createElement('div');
+    cont.id = 'octarine-video-container';
+    Object.assign(cont.style,
+		  {
+		      position:'fixed',
+		      zIndex:'999999',
+		      overflow:'hidden',
+		      width:'240px',
+		      height:'240px',
+		      background:'#000',
+		      border:'3px solid #fff',
+		      borderRadius:'50%',
+		      boxShadow:'0 6px 32px rgba(0,0,0,0.8)',
+		      cursor:'move',
+		      left:(window.innerWidth-280)+'px',
+		      top:(window.innerHeight-280)+'px'
+		  });
+
+    const vid = document.createElement('video');
+    Object.assign(vid, {
+	autoplay:true,
+	muted:true,
+	playsInline:true
+    });
+    Object.assign(vid.style,
+		  {
+		      width:'100%',
+		      height:'100%',
+		      objectFit:'cover',
+		      borderRadius:'50%'
+		  });
+    cont.appendChild(vid);
+
+    const close = document.createElement('button');
+    close.textContent='×';
+    Object.assign(close.style,
+		  {
+		      position:'absolute',
+		      top:'-14px',
+		      left:'50%',
+		      transform:'translateX(-50%)',
+		      zIndex:'11',
+		      width:'32px',
+		      height:'32px',
+		      borderRadius:'50%',
+		      border:'2px solid #fff',
+		      background:'rgba(0,0,0,0.85)',
+		      color:'#fff',
+		      fontSize:'22px',
+		      cursor:'pointer',
+		      boxShadow:'0 3px 12px rgba(0,0,0,0.6)'});
+    close.onclick = ()=>{ document.body.removeChild(cont); };
+    cont.appendChild(close);
+
+    const resize = document.createElement('div');
+    Object.assign(resize.style,
+		  {
+		      position:'absolute',
+		      bottom:'-14px',
+		      left:'50%',
+		      transform:'translateX(-50%)',
+		      zIndex:'11',
+		      width:'28px',
+		      height:'28px',
+		      background:'#fff',
+		      cursor:'ns-resize',
+		      borderRadius:'50%',
+		      border:'2px solid #000',
+		      boxShadow:'0 3px 10px rgba(0,0,0,0.5)'
+		  });
+    cont.appendChild(resize);
+
+    document.body.appendChild(cont);
+    let drag=false, dx, dy;
+
+    cont.addEventListener('pointerdown',
+			  e => {
+			      if (e.target===resize) return;
+			      drag = true;
+			      dx = e.clientX-cont.offsetLeft;
+			      dy = e.clientY-cont.offsetTop;
+			      cont.style.transition = 'none';
+			      e.preventDefault();
+			  });
+    document.addEventListener('pointermove',
+			      e => {
+				  if (!drag) return;
+				  cont.style.left=(e.clientX-dx)+'px';
+				  cont.style.top=(e.clientY-dy)+'px';
+			      });
+
+    let resizeActive = false, sx, sy, sw;
+    resize.addEventListener('pointerdown',
+			    e => {
+				resizeActive = true;
+				sx = e.clientX;
+				sy = e.clientY;
+				sw = cont.offsetWidth;
+				cont.style.transition = 'none';
+				e.preventDefault();
+				e.stopPropagation();
+			    });
+    document.addEventListener('pointermove',
+			      e => {
+				  if(!resizeActive)return;
+				  const delta = Math.max(e.clientX-sx,e.clientY-sy);
+				  const newSize = Math.max(120,sw+delta);
+				  cont.style.width = newSize+'px';
+				  cont.style.height = newSize+'px';
+			      });
+
+    // these two should be combined
+    document.addEventListener('pointerup', () => { drag=false; });
+    document.addEventListener('pointerup', () => { resizeActive=false; });
+
+    navigator.mediaDevices.getUserMedia({
+	video:true
+	audio: false;
+    }).then(s => {
+	vid.srcObject=s;
+    }).catch(e => {
+	alert('Camera failed: '+e.message);
+	document.body.removeChild(cont);
+    });
+    
+}
+
+
+init();
+
