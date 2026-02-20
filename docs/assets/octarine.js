@@ -1,5 +1,21 @@
 
-function init(){
+function handleCameraClick(event) {
+
+    const cont = document.getElementById('octarine-video-container');
+    if (!cont) return;
+    if (event.shiftKey) {
+	if (cont.getAttribute("class") == "sqcam")
+	    cont.setAttribute("class", "circam");
+	else 
+	    cont.setAttribute("class", "sqcam");
+	event.preventDefault();
+    }
+}
+
+
+
+function start_camera()
+{
     if (document.getElementById('octarine-video-container')){
 	alert('Octarine already running.');
 	return;
@@ -7,6 +23,9 @@ function init(){
 
     const cont = document.createElement('div');
     cont.id = 'octarine-video-container';
+    // cont.className = 'sqcam';
+    cont.setAttribute("class", "circam");
+
     Object.assign(cont.style,
 		  {
 		      position:'fixed',
@@ -16,8 +35,8 @@ function init(){
 		      height:'240px',
 		      background:'#000',
 		      border:'3px solid #fff',
-		      borderRadius:'50%',
-		      boxShadow:'0 6px 32px rgba(0,0,0,0.8)',
+		      // borderRadius:'20%',
+		      // boxShadow:'0 6px 32px rgba(0,0,0,0.8)',
 		      cursor:'move',
 		      left:(window.innerWidth-280)+'px',
 		      top:(window.innerHeight-280)+'px'
@@ -33,8 +52,9 @@ function init(){
 		  {
 		      width:'100%',
 		      height:'100%',
+		      // clipPath:'circle(40%)',
+		      //borderRadius:'50%'
 		      objectFit:'cover',
-		      borderRadius:'50%'
 		  });
     cont.appendChild(vid);
 
@@ -80,6 +100,8 @@ function init(){
     document.body.appendChild(cont);
     let drag=false, dx, dy;
 
+    cont.onclick = (e) => { handleCameraClick(e); };
+    
     cont.addEventListener('pointerdown',
 			  e => {
 			      if (e.target===resize) return;
@@ -116,13 +138,18 @@ function init(){
 				  cont.style.height = newSize+'px';
 			      });
 
-    // these two should be combined
-    document.addEventListener('pointerup', () => { drag=false; });
-    document.addEventListener('pointerup', () => { resizeActive=false; });
+    // // these two should be combined
+    // document.addEventListener('pointerup', () => { drag=false; });
+    // document.addEventListener('pointerup', () => { resizeActive=false; });
+
+    document.addEventListener('pointerup', () => {
+	drag=false;
+	resizeActive=false;
+    });
 
     navigator.mediaDevices.getUserMedia({
-	video:true
-	audio: false;
+	audio: false,
+	video: true
     }).then(s => {
 	vid.srcObject=s;
     }).catch(e => {
@@ -131,7 +158,4 @@ function init(){
     });
     
 }
-
-
-init();
 
