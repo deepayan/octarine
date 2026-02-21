@@ -5,60 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <style>
 
-
-    #webcam-feed {
-	width: 20%;
-	position: absolute;
-	left: 75%;
-	top: 5%;
-	clip-path: circle(40%);
-    }
-
     #frame-content {
 	width: 100vw;
 	height: 96vh;
-	max-width: ;
 	max-height: 100vh;
 	/* oveflow: none; */
     }
+
     
   </style>
+  <link href="assets/octarine.css" rel="stylesheet">
+  <script src="assets/octarine.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 
 </head>
 
-<body>
+<body onload='add_video_toggle();'>
 
-  <video id="webcam-feed" autoplay playsinline></video>
   <iframe id="frame-content" src="frame.html"></iframe>
 
 </body>
 </html>  
 
-
-<script>
-
-const videoElement = document.getElementById('webcam-feed');
-
-// Constraints object: requests both audio and video
-const constraints = {
-    audio: false,
-    video: true
-};
-
-// Use navigator.mediaDevices.getUserMedia() to request the media stream
-navigator.mediaDevices.getUserMedia(constraints)
-    .then((stream) => {
-        // Success: attach the stream to the video element
-        videoElement.srcObject = stream;
-        videoElement.onloadedmetadata = () => {
-            videoElement.play();
-        };
-    })
-    .catch((err) => {
-        // Error handling: permission denied, no devices, etc.
-        console.error(`An error occurred: ${err.name}`, err);
-    });
-
-</script>
 
 
