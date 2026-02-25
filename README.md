@@ -18,11 +18,14 @@ Another option is to add this as a bookmarklet in your browser. To do this, add 
 javascript:(function(){
   var l1 = document.createElement('link');
   l1.rel = 'stylesheet';
-
-  l1.ref = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0';
+  l1.type = 'text/css';
+  l1.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0';
+  l1.media = 'all';
   var l2 = document.createElement('link');
-  l1.rel = 'stylesheet';
-  l1.ref = 'https://deepayan.github.io/octarine/assets/octarine.css';
+  l2.rel = 'stylesheet';
+  l2.type = 'text/css';
+  l2.href = 'https://deepayan.github.io/octarine/assets/octarine.css';
+  l2.media = 'all';
   var s = document.createElement('script');
   s.type = 'text/javascript';
   s.src = 'https://deepayan.github.io/octarine/assets/octarine.js';
