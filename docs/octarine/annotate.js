@@ -130,36 +130,31 @@ Octarine.define('annotate', function (O) {
       O.h('button', {
         class: `o-btn ${drawingEnabled ? 'active' : ''}`,
         title: 'Toggle Annotation Pen (Click through vs Draw)',
-        html: O.icon('pen', 16),
         onclick: () => setDrawMode(!drawingEnabled)
-      }),
+      }, O.icon('pen', 16)),
       O.h('button', {
         class: 'o-btn icon',
         title: 'Eraser',
-        html: O.icon('eraser', 16),
         onclick: () => {
           st.tool = 'eraser';
           setDrawMode(true);
         }
-      }),
+      }, O.icon('eraser', 16)),
       O.h('button', {
         class: 'o-btn icon',
         title: 'Undo',
-        html: O.icon('undo', 16),
         onclick: () => surface.undo()
-      }),
+      }, O.icon('undo', 16)),
       O.h('button', {
         class: 'o-btn icon',
         title: 'Clear Slide Annotations',
-        html: O.icon('trash', 16),
         onclick: () => surface.clear()
-      }),
+      }, O.icon('trash', 16)),
       O.h('button', {
         class: 'o-btn icon',
         title: 'Close Annotation Layer',
-        html: O.icon('close', 16),
         onclick: () => disable()
-      })
+      }, O.icon('close', 16))
     );
   }
 

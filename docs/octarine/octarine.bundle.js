@@ -71,7 +71,17 @@ window.PerfectFreehand = exports;
       }
     }
     for (const c of children.flat()) {
-      if (c != null && c !== false) el.append(c instanceof Node ? c : String(c));
+      if (c != null && c !== false) {
+        if (c instanceof Node) {
+          el.append(c);
+        } else if (typeof c === 'string' && c.trim().startsWith('<')) {
+          const tmpl = document.createElement('template');
+          tmpl.innerHTML = c;
+          el.append(...tmpl.content.childNodes);
+        } else {
+          el.append(String(c));
+        }
+      }
     }
     return el;
   };
@@ -175,9 +185,16 @@ window.PerfectFreehand = exports;
   };
   O.ICONS = ICONS;
 
-  O.icon = function (name, size) {
+  O.iconHTML = function (name, size) {
     size = size || 20;
     return `<svg class="oi" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
+  };
+
+  O.icon = function (name, size) {
+    const html = O.iconHTML(name, size);
+    const tmpl = document.createElement('template');
+    tmpl.innerHTML = html;
+    return tmpl.content.firstElementChild;
   };
 
   /* ------------------------------------------------------------------ */
@@ -461,7 +478,7 @@ Octarine.define('camera', function (O) {
     host.classList.toggle('full', full);
     host.classList.toggle('mirror', st.mirror);
     if (fullBtn) {
-      fullBtn.innerHTML = O.icon(full ? 'minimize' : 'maximize', 16);
+      fullBtn.innerHTML = O.iconHTML(full ? 'minimize' : 'maximize', 16);
       fullBtn.title = full ? 'Restore small view (double-click)' : 'Large view (double-click)';
     }
   }
@@ -482,10 +499,10 @@ Octarine.define('camera', function (O) {
 
   function button(icon, title, fn) {
     return O.h('button', {
-      class: 'o-btn icon', title, html: O.icon(icon, 16),
+      class: 'o-btn icon', title,
       onpointerdown: (e) => e.stopPropagation(),
       onclick: (e) => { e.stopPropagation(); fn(); }
-    });
+    }, O.icon(icon, 16));
   }
 
   function build() {
@@ -1394,6 +1411,8 @@ Octarine.define('draw', function (O) {
 Octarine.define('board', function (O) {
   'use strict';
 
+  console.log("creating board");
+
   const BG_THEMES = [
     { id: 'black', name: 'Blackboard', color: '#1a1a1e', text: '#fff' },
     { id: 'green', name: 'Chalkboard', color: '#16382c', text: '#fff' },
@@ -1410,8 +1429,8 @@ Octarine.define('board', function (O) {
 
   const st = Object.assign(
     {
-      visible: false,
       tool: 'pen',
+      visibility: false,
       color: '#ffffff',
       size: 6,
       bg: 'black',
@@ -1421,9 +1440,15 @@ Octarine.define('board', function (O) {
     O.storage.get('board_data', {})
   );
 
+
+  console.log("define board: st");
+  console.log(st);
+
   const saveState = O.debounce(() => {
     O.storage.set('board_data', st);
   }, 400);
+
+
 
   let host = null, root = null, surface = null;
   let boardContainer = null, svgEl = null, toolbarEl = null;
@@ -1561,9 +1586,8 @@ Octarine.define('board', function (O) {
 
     // Drag handle
     const grip = O.h('div', {
-      style: { cursor: 'move', display: 'flex', alignItems: 'center', opacity: '0.6' },
-      html: O.icon('grip', 16)
-    });
+      style: { cursor: 'move', display: 'flex', alignItems: 'center', opacity: '0.6' }
+    }, O.icon('grip', 16));
     O.dragHelper(grip, {
       onStart: () => {
         const r = toolbarEl.getBoundingClientRect();
@@ -1593,9 +1617,8 @@ Octarine.define('board', function (O) {
       const btn = O.h('button', {
         class: `o-btn icon ${st.tool === t.id ? 'active' : ''}`,
         title: t.title,
-        html: O.icon(t.icon, 18),
         onclick: () => setTool(t.id)
-      });
+      }, O.icon(t.icon, 18));
       btn.dataset.tool = t.id;
       grpTools.appendChild(btn);
     });
@@ -1630,26 +1653,26 @@ Octarine.define('board', function (O) {
 
     // Undo / Redo / Clear
     const grpHistory = O.h('div', { class: 'toolbar-grp' },
-      O.h('button', { class: 'o-btn icon', title: 'Undo (Ctrl+Z)', html: O.icon('undo', 18), onclick: () => surface.undo() }),
-      O.h('button', { class: 'o-btn icon', title: 'Redo (Ctrl+Y)', html: O.icon('redo', 18), onclick: () => surface.redo() }),
-      O.h('button', { class: 'o-btn icon', title: 'Clear Page', html: O.icon('trash', 18), onclick: () => {
+      O.h('button', { class: 'o-btn icon', title: 'Undo (Ctrl+Z)', onclick: () => surface.undo() }, O.icon('undo', 18)),
+      O.h('button', { class: 'o-btn icon', title: 'Redo (Ctrl+Y)', onclick: () => surface.redo() }, O.icon('redo', 18)),
+      O.h('button', { class: 'o-btn icon', title: 'Clear Page', onclick: () => {
         if (confirm('Clear current whiteboard page?')) surface.clear();
-      }})
+      }}, O.icon('trash', 18))
     );
 
     // Multipage navigation
     pageIndicator = O.h('span', { style: { minWidth: '40px', textAlign: 'center' } }, '1 / 1');
     const grpPages = O.h('div', { class: 'toolbar-grp page-nav' },
-      O.h('button', { class: 'o-btn icon', title: 'Previous Page', html: O.icon('left', 18), onclick: () => prevPage() }),
+      O.h('button', { class: 'o-btn icon', title: 'Previous Page', onclick: () => prevPage() }, O.icon('left', 18)),
       pageIndicator,
-      O.h('button', { class: 'o-btn icon', title: 'Next Page', html: O.icon('right', 18), onclick: () => nextPage() }),
-      O.h('button', { class: 'o-btn icon', title: 'Add New Page', html: O.icon('plus', 18), onclick: () => addPage() })
+      O.h('button', { class: 'o-btn icon', title: 'Next Page', onclick: () => nextPage() }, O.icon('right', 18)),
+      O.h('button', { class: 'o-btn icon', title: 'Add New Page', onclick: () => addPage() }, O.icon('plus', 18))
     );
 
     // Export options & Close
     const grpExport = O.h('div', { class: 'toolbar-grp' },
-      O.h('button', { class: 'o-btn icon', title: 'Export PNG / SVG', html: O.icon('download', 18), onclick: () => showExportMenu() }),
-      O.h('button', { class: 'o-btn icon', title: 'Close Board (Esc)', html: O.icon('close', 18), onclick: () => hide() })
+      O.h('button', { class: 'o-btn icon', title: 'Export PNG / SVG', onclick: () => showExportMenu() }, O.icon('download', 18)),
+      O.h('button', { class: 'o-btn icon', title: 'Close Board (Esc)', onclick: () => hide() }, O.icon('close', 18))
     );
 
     toolbarEl.append(grpTools, grpColors, grpSizes, grpHistory, grpPages, grpExport);
@@ -1802,27 +1825,27 @@ Octarine.define('board', function (O) {
     build();
     if (opts && opts.background) applyTheme(opts.background);
     host.style.display = 'block';
-    st.visible = true;
+    st.visibility = true;
     saveState();
-    O.emit('board:change', { visible: true });
+    O.emit('board:change', { visibility: true });
   }
 
   function hide() {
     if (!host) return;
     host.style.display = 'none';
-    st.visible = false;
+    st.visibility = false;
     saveState();
-    O.emit('board:change', { visible: false });
+    O.emit('board:change', { visibility: false });
   }
 
   function toggle() {
-    if (st.visible) hide();
+    if (st.visibility) hide();
     else show();
   }
 
   // Keyboard shortcut integration for whiteboard
   O.addKeyHandler((e) => {
-    if (!st.visible) return false;
+    if (!st.visibility) return false;
     if (e.key === 'Escape') { hide(); return true; }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
       if (e.shiftKey) surface.redo();
@@ -1849,7 +1872,7 @@ Octarine.define('board', function (O) {
     show,
     hide,
     toggle,
-    isVisible: () => st.visible,
+    isVisible: () => st.visibility,
     setTool,
     setColor,
     setSize,
@@ -1997,36 +2020,31 @@ Octarine.define('annotate', function (O) {
       O.h('button', {
         class: `o-btn ${drawingEnabled ? 'active' : ''}`,
         title: 'Toggle Annotation Pen (Click through vs Draw)',
-        html: O.icon('pen', 16),
         onclick: () => setDrawMode(!drawingEnabled)
-      }),
+      }, O.icon('pen', 16)),
       O.h('button', {
         class: 'o-btn icon',
         title: 'Eraser',
-        html: O.icon('eraser', 16),
         onclick: () => {
           st.tool = 'eraser';
           setDrawMode(true);
         }
-      }),
+      }, O.icon('eraser', 16)),
       O.h('button', {
         class: 'o-btn icon',
         title: 'Undo',
-        html: O.icon('undo', 16),
         onclick: () => surface.undo()
-      }),
+      }, O.icon('undo', 16)),
       O.h('button', {
         class: 'o-btn icon',
         title: 'Clear Slide Annotations',
-        html: O.icon('trash', 16),
         onclick: () => surface.clear()
-      }),
+      }, O.icon('trash', 16)),
       O.h('button', {
         class: 'o-btn icon',
         title: 'Close Annotation Layer',
-        html: O.icon('close', 16),
         onclick: () => disable()
-      })
+      }, O.icon('close', 16))
     );
   }
 
@@ -2225,9 +2243,8 @@ Octarine.define('panel', function (O) {
       O.h('button', {
         class: 'o-btn icon',
         title: 'Close Panel',
-        html: O.icon('close', 18),
         onclick: () => close()
-      })
+      }, O.icon('close', 18))
     );
 
     // Body
@@ -2243,10 +2260,9 @@ Octarine.define('panel', function (O) {
     // Trigger button
     triggerEl = O.h('button', {
       class: 'trigger-btn',
-      title: `Octarine Classroom Controls (${O.options.panelKey || '`'})`,
-      html: O.icon('logo', 22),
+      title: "Octarine Classroom Controls (${O.options.panelKey || '`'})",
       onclick: () => toggle()
-    });
+    }, O.icon('logo', 22));
 
     // Positioning of trigger button
     const pos = (opts && opts.trigger) || 'top-left';
@@ -2274,12 +2290,11 @@ Octarine.define('panel', function (O) {
     const card = O.h('div', { class: 'feature-card' });
     const toggleBtn = O.h('button', {
       class: 'switch-btn',
-      html: O.icon('camera', 16) + ' <span>Enable</span>',
       onclick: () => {
         O.camera.toggle();
         updateCameraUI();
       }
-    });
+    }, O.icon('camera', 16), O.h('span', {}, 'Enable'));
 
     const head = O.h('div', { class: 'feature-head' },
       O.h('span', { class: 'feature-name' }, O.icon('camera', 18), 'Live Camera View'),
@@ -2302,9 +2317,8 @@ Octarine.define('panel', function (O) {
 
     const fullBtn = O.h('button', {
       class: 'o-btn',
-      html: O.icon('maximize', 14) + ' Fullview',
       onclick: () => O.camera.toggleFull()
-    });
+    }, O.icon('maximize', 14), ' Fullview');
 
     const deviceSelect = O.h('select', {
       style: { width: '100%' },
@@ -2352,12 +2366,11 @@ Octarine.define('panel', function (O) {
     const card = O.h('div', { class: 'feature-card' });
     const toggleBtn = O.h('button', {
       class: 'switch-btn',
-      html: O.icon('mic', 16) + ' <span>Enable</span>',
       onclick: () => {
         O.voice.toggle();
         updateVoiceUI();
       }
-    });
+    }, O.icon('mic', 16), O.h('span', {}, 'Enable'));
 
     const head = O.h('div', { class: 'feature-head' },
       O.h('span', { class: 'feature-name' }, O.icon('mic', 18), 'Voice Lifter (Mic)'),
@@ -2376,9 +2389,8 @@ Octarine.define('panel', function (O) {
     const muteBtn = O.h('button', {
       class: 'o-btn icon',
       title: 'Mute/Unmute',
-      html: O.icon('mic', 16),
       onclick: () => O.voice.toggleMute()
-    });
+    }, O.icon('mic', 16));
 
     const vuBar = O.h('div', { class: 'vu-bar' });
     const vuContainer = O.h('div', { class: 'vu-meter' }, vuBar);
@@ -2409,7 +2421,8 @@ Octarine.define('panel', function (O) {
       gainSlider.value = state.gain;
       gainVal.textContent = Math.round(state.gain * 100) + '%';
       muteBtn.classList.toggle('active', state.muted);
-      muteBtn.innerHTML = O.icon(state.muted ? 'micOff' : 'mic', 16);
+      muteBtn.innerHTML = '';
+      muteBtn.appendChild(O.icon(state.muted ? 'micOff' : 'mic', 16));
     }
 
     O.on('voice:change', updateVoiceUI);
@@ -2437,12 +2450,12 @@ Octarine.define('panel', function (O) {
     const card = O.h('div', { class: 'feature-card' });
     const toggleBtn = O.h('button', {
       class: 'switch-btn',
-      html: O.icon('board', 16) + ' <span>Open</span>',
       onclick: () => {
         O.board.toggle();
+        toggleBtn.classList.toggle('on', O.board.isVisible());
         close();
       }
-    });
+    }, O.icon('board', 16), O.h('span', {}, 'Open'));
 
     const head = O.h('div', { class: 'feature-head' },
       O.h('span', { class: 'feature-name' }, O.icon('board', 18), 'Interactive Whiteboard'),
@@ -2460,9 +2473,8 @@ Octarine.define('panel', function (O) {
       O.h('span', {}, 'Theme:'), themeSelect,
       O.h('button', {
         class: 'o-btn',
-        html: O.icon('download', 14) + ' Export',
         onclick: () => O.board.exportPNG()
-      })
+      }, O.icon('download', 14), ' Export')
     );
 
     card.append(head, row);
@@ -2473,13 +2485,12 @@ Octarine.define('panel', function (O) {
     const card = O.h('div', { class: 'feature-card' });
     const toggleBtn = O.h('button', {
       class: 'switch-btn',
-      html: O.icon('annotate', 16) + ' <span>Overlay</span>',
       onclick: () => {
         O.annotate.toggle();
         toggleBtn.classList.toggle('on', O.annotate.isActive());
         close();
       }
-    });
+    }, O.icon('annotate', 16), O.h('span', {}, 'Overlay'));
 
     const head = O.h('div', { class: 'feature-head' },
       O.h('span', { class: 'feature-name' }, O.icon('annotate', 18), 'Slide Annotations'),

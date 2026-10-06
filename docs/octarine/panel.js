@@ -117,9 +117,8 @@ Octarine.define('panel', function (O) {
       O.h('button', {
         class: 'o-btn icon',
         title: 'Close Panel',
-        html: O.icon('close', 18),
         onclick: () => close()
-      })
+      }, O.icon('close', 18))
     );
 
     // Body
@@ -135,10 +134,9 @@ Octarine.define('panel', function (O) {
     // Trigger button
     triggerEl = O.h('button', {
       class: 'trigger-btn',
-      title: `Octarine Classroom Controls (${O.options.panelKey || '`'})`,
-      html: O.icon('logo', 22),
+      title: "Octarine Classroom Controls (${O.options.panelKey || '`'})",
       onclick: () => toggle()
-    });
+    }, O.icon('logo', 22));
 
     // Positioning of trigger button
     const pos = (opts && opts.trigger) || 'top-left';
@@ -166,12 +164,12 @@ Octarine.define('panel', function (O) {
     const card = O.h('div', { class: 'feature-card' });
     const toggleBtn = O.h('button', {
       class: 'switch-btn',
-      html: O.icon('camera', 16) + ' <span>Enable</span>',
       onclick: () => {
+        console.log('toggled camera');
         O.camera.toggle();
         updateCameraUI();
       }
-    });
+    }, O.icon('camera', 16), O.h('span', {}, 'Enable'));
 
     const head = O.h('div', { class: 'feature-head' },
       O.h('span', { class: 'feature-name' }, O.icon('camera', 18), 'Live Camera View'),
@@ -194,9 +192,8 @@ Octarine.define('panel', function (O) {
 
     const fullBtn = O.h('button', {
       class: 'o-btn',
-      html: O.icon('maximize', 14) + ' Fullview',
       onclick: () => O.camera.toggleFull()
-    });
+    }, O.icon('maximize', 14), ' Fullview');
 
     const deviceSelect = O.h('select', {
       style: { width: '100%' },
@@ -244,12 +241,11 @@ Octarine.define('panel', function (O) {
     const card = O.h('div', { class: 'feature-card' });
     const toggleBtn = O.h('button', {
       class: 'switch-btn',
-      html: O.icon('mic', 16) + ' <span>Enable</span>',
       onclick: () => {
         O.voice.toggle();
         updateVoiceUI();
       }
-    });
+    }, O.icon('mic', 16), O.h('span', {}, 'Enable'));
 
     const head = O.h('div', { class: 'feature-head' },
       O.h('span', { class: 'feature-name' }, O.icon('mic', 18), 'Voice Lifter (Mic)'),
@@ -268,9 +264,8 @@ Octarine.define('panel', function (O) {
     const muteBtn = O.h('button', {
       class: 'o-btn icon',
       title: 'Mute/Unmute',
-      html: O.icon('mic', 16),
       onclick: () => O.voice.toggleMute()
-    });
+    }, O.icon('mic', 16));
 
     const vuBar = O.h('div', { class: 'vu-bar' });
     const vuContainer = O.h('div', { class: 'vu-meter' }, vuBar);
@@ -301,7 +296,8 @@ Octarine.define('panel', function (O) {
       gainSlider.value = state.gain;
       gainVal.textContent = Math.round(state.gain * 100) + '%';
       muteBtn.classList.toggle('active', state.muted);
-      muteBtn.innerHTML = O.icon(state.muted ? 'micOff' : 'mic', 16);
+      muteBtn.innerHTML = '';
+      muteBtn.appendChild(O.icon(state.muted ? 'micOff' : 'mic', 16));
     }
 
     O.on('voice:change', updateVoiceUI);
@@ -329,12 +325,12 @@ Octarine.define('panel', function (O) {
     const card = O.h('div', { class: 'feature-card' });
     const toggleBtn = O.h('button', {
       class: 'switch-btn',
-      html: O.icon('board', 16) + ' <span>Open</span>',
       onclick: () => {
+        console.log('toggled board [panel.js]');
         O.board.toggle();
         close();
       }
-    });
+    }, O.icon('board', 16), O.h('span', {}, 'Open'));
 
     const head = O.h('div', { class: 'feature-head' },
       O.h('span', { class: 'feature-name' }, O.icon('board', 18), 'Interactive Whiteboard'),
@@ -352,9 +348,8 @@ Octarine.define('panel', function (O) {
       O.h('span', {}, 'Theme:'), themeSelect,
       O.h('button', {
         class: 'o-btn',
-        html: O.icon('download', 14) + ' Export',
         onclick: () => O.board.exportPNG()
-      })
+      }, O.icon('download', 14), ' Export')
     );
 
     card.append(head, row);
@@ -365,13 +360,13 @@ Octarine.define('panel', function (O) {
     const card = O.h('div', { class: 'feature-card' });
     const toggleBtn = O.h('button', {
       class: 'switch-btn',
-      html: O.icon('annotate', 16) + ' <span>Overlay</span>',
       onclick: () => {
+        console.log('toggled annotation');
         O.annotate.toggle();
         toggleBtn.classList.toggle('on', O.annotate.isActive());
         close();
       }
-    });
+    }, O.icon('annotate', 16), O.h('span', {}, 'Overlay'));
 
     const head = O.h('div', { class: 'feature-head' },
       O.h('span', { class: 'feature-name' }, O.icon('annotate', 18), 'Slide Annotations'),

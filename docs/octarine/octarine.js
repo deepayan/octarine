@@ -60,7 +60,17 @@
       }
     }
     for (const c of children.flat()) {
-      if (c != null && c !== false) el.append(c instanceof Node ? c : String(c));
+      if (c != null && c !== false) {
+        if (c instanceof Node) {
+          el.append(c);
+        } else if (typeof c === 'string' && c.trim().startsWith('<')) {
+          const tmpl = document.createElement('template');
+          tmpl.innerHTML = c;
+          el.append(...tmpl.content.childNodes);
+        } else {
+          el.append(String(c));
+        }
+      }
     }
     return el;
   };
@@ -164,9 +174,16 @@
   };
   O.ICONS = ICONS;
 
-  O.icon = function (name, size) {
+  O.iconHTML = function (name, size) {
     size = size || 20;
     return `<svg class="oi" viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
+  };
+
+  O.icon = function (name, size) {
+    const html = O.iconHTML(name, size);
+    const tmpl = document.createElement('template');
+    tmpl.innerHTML = html;
+    return tmpl.content.firstElementChild;
   };
 
   /* ------------------------------------------------------------------ */

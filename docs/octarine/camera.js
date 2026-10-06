@@ -75,7 +75,7 @@ Octarine.define('camera', function (O) {
     host.classList.toggle('full', full);
     host.classList.toggle('mirror', st.mirror);
     if (fullBtn) {
-      fullBtn.innerHTML = O.icon(full ? 'minimize' : 'maximize', 16);
+      fullBtn.innerHTML = O.iconHTML(full ? 'minimize' : 'maximize', 16);
       fullBtn.title = full ? 'Restore small view (double-click)' : 'Large view (double-click)';
     }
   }
@@ -96,10 +96,10 @@ Octarine.define('camera', function (O) {
 
   function button(icon, title, fn) {
     return O.h('button', {
-      class: 'o-btn icon', title, html: O.icon(icon, 16),
+      class: 'o-btn icon', title,
       onpointerdown: (e) => e.stopPropagation(),
       onclick: (e) => { e.stopPropagation(); fn(); }
-    });
+    }, O.icon(icon, 16));
   }
 
   function build() {

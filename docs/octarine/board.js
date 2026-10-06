@@ -25,7 +25,7 @@ Octarine.define('board', function (O) {
 
   const st = Object.assign(
     {
-      visible: false,
+      visibility: false,
       tool: 'pen',
       color: '#ffffff',
       size: 6,
@@ -176,9 +176,8 @@ Octarine.define('board', function (O) {
 
     // Drag handle
     const grip = O.h('div', {
-      style: { cursor: 'move', display: 'flex', alignItems: 'center', opacity: '0.6' },
-      html: O.icon('grip', 16)
-    });
+      style: { cursor: 'move', display: 'flex', alignItems: 'center', opacity: '0.6' }
+    }, O.icon('grip', 16));
     O.dragHelper(grip, {
       onStart: () => {
         const r = toolbarEl.getBoundingClientRect();
@@ -208,9 +207,8 @@ Octarine.define('board', function (O) {
       const btn = O.h('button', {
         class: `o-btn icon ${st.tool === t.id ? 'active' : ''}`,
         title: t.title,
-        html: O.icon(t.icon, 18),
         onclick: () => setTool(t.id)
-      });
+      }, O.icon(t.icon, 18));
       btn.dataset.tool = t.id;
       grpTools.appendChild(btn);
     });
@@ -245,26 +243,26 @@ Octarine.define('board', function (O) {
 
     // Undo / Redo / Clear
     const grpHistory = O.h('div', { class: 'toolbar-grp' },
-      O.h('button', { class: 'o-btn icon', title: 'Undo (Ctrl+Z)', html: O.icon('undo', 18), onclick: () => surface.undo() }),
-      O.h('button', { class: 'o-btn icon', title: 'Redo (Ctrl+Y)', html: O.icon('redo', 18), onclick: () => surface.redo() }),
-      O.h('button', { class: 'o-btn icon', title: 'Clear Page', html: O.icon('trash', 18), onclick: () => {
+      O.h('button', { class: 'o-btn icon', title: 'Undo (Ctrl+Z)', onclick: () => surface.undo() }, O.icon('undo', 18)),
+      O.h('button', { class: 'o-btn icon', title: 'Redo (Ctrl+Y)', onclick: () => surface.redo() }, O.icon('redo', 18)),
+      O.h('button', { class: 'o-btn icon', title: 'Clear Page', onclick: () => {
         if (confirm('Clear current whiteboard page?')) surface.clear();
-      }})
+      }}, O.icon('trash', 18))
     );
 
     // Multipage navigation
     pageIndicator = O.h('span', { style: { minWidth: '40px', textAlign: 'center' } }, '1 / 1');
     const grpPages = O.h('div', { class: 'toolbar-grp page-nav' },
-      O.h('button', { class: 'o-btn icon', title: 'Previous Page', html: O.icon('left', 18), onclick: () => prevPage() }),
+      O.h('button', { class: 'o-btn icon', title: 'Previous Page', onclick: () => prevPage() }, O.icon('left', 18)),
       pageIndicator,
-      O.h('button', { class: 'o-btn icon', title: 'Next Page', html: O.icon('right', 18), onclick: () => nextPage() }),
-      O.h('button', { class: 'o-btn icon', title: 'Add New Page', html: O.icon('plus', 18), onclick: () => addPage() })
+      O.h('button', { class: 'o-btn icon', title: 'Next Page', onclick: () => nextPage() }, O.icon('right', 18)),
+      O.h('button', { class: 'o-btn icon', title: 'Add New Page', onclick: () => addPage() }, O.icon('plus', 18))
     );
 
     // Export options & Close
     const grpExport = O.h('div', { class: 'toolbar-grp' },
-      O.h('button', { class: 'o-btn icon', title: 'Export PNG / SVG', html: O.icon('download', 18), onclick: () => showExportMenu() }),
-      O.h('button', { class: 'o-btn icon', title: 'Close Board (Esc)', html: O.icon('close', 18), onclick: () => hide() })
+      O.h('button', { class: 'o-btn icon', title: 'Export PNG / SVG', onclick: () => showExportMenu() }, O.icon('download', 18)),
+      O.h('button', { class: 'o-btn icon', title: 'Close Board (Esc)', onclick: () => hide() }, O.icon('close', 18))
     );
 
     toolbarEl.append(grpTools, grpColors, grpSizes, grpHistory, grpPages, grpExport);
@@ -417,27 +415,27 @@ Octarine.define('board', function (O) {
     build();
     if (opts && opts.background) applyTheme(opts.background);
     host.style.display = 'block';
-    st.visible = true;
+    st.visibility = true;
     saveState();
-    O.emit('board:change', { visible: true });
+    O.emit('board:change', { visibility: true });
   }
 
   function hide() {
     if (!host) return;
     host.style.display = 'none';
-    st.visible = false;
+    st.visibility = false;
     saveState();
-    O.emit('board:change', { visible: false });
+    O.emit('board:change', { visibility: false });
   }
 
   function toggle() {
-    if (st.visible) hide();
+    if (st.visibility) hide();
     else show();
   }
 
   // Keyboard shortcut integration for whiteboard
   O.addKeyHandler((e) => {
-    if (!st.visible) return false;
+    if (!st.visibility) return false;
     if (e.key === 'Escape') { hide(); return true; }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
       if (e.shiftKey) surface.redo();
@@ -464,7 +462,7 @@ Octarine.define('board', function (O) {
     show,
     hide,
     toggle,
-    isVisible: () => st.visible,
+    isVisible: () => st.visibility,
     setTool,
     setColor,
     setSize,
