@@ -3,40 +3,79 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Bootstrap demo</title>
+    <title>Octarine Presentation Demo</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <style>
+      body {
+        background: linear-gradient(135deg, #1f2430 0%, #0d1117 100%);
+        color: #f0f6fc;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .card {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #f0f6fc;
+        border-radius: 16px;
+      }
+      .feature-badge {
+        background: rgba(124, 92, 255, 0.15);
+        border: 1px solid rgba(124, 92, 255, 0.4);
+        color: #b39dff;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+      }
+    </style>
   </head>
   <body>
 
-    <div class="container-md">
-    
-      <h1>Welcome to the Octarine Layer</h1>
+    <div class="container-md" style="max-width: 720px; padding: 2rem;">
+      <div class="card p-4 shadow-lg">
+        <h1 class="display-6 fw-bold mb-3 text-center">Welcome to the Octarine Layer</h1>
+        <p class="text-secondary text-center mb-4">
+          A standalone, client-side classroom presentation companion with Live Voice Lifter, Resizable Camera PIP, and Interactive Whiteboard.
+        </p>
 
-      <form>
-	<div class="mb-3">
-	  <label for="targeturl" class="form-label">Enter Website URL</label>
-	  <input type="url" class="form-control" id="targeturl">
-	</div>
-	<button type="submit" class="btn btn-primary" onclick="return switchToURL()">Go</button>
-      </form>
+        <div class="d-flex flex-wrap justify-content-center gap-2 mb-4">
+          <span class="feature-badge">🎙 Voice Lifter (Web Audio)</span>
+          <span class="feature-badge">📹 Draggable Live Camera</span>
+          <span class="feature-badge">🖍 Vector SVG Whiteboard</span>
+          <span class="feature-badge">✨ No Server Required</span>
+        </div>
 
-    </div> <!-- end container -->
+        <form class="mb-4" onsubmit="return switchToURL();">
+          <label for="targeturl" class="form-label text-light">Preview Any Presentation / URL</label>
+          <div class="input-group">
+            <input type="url" class="form-control bg-dark text-light border-secondary" id="targeturl" placeholder="https://example.com/slides.html">
+            <button type="submit" class="btn btn-primary px-4">Load</button>
+          </div>
+          <div class="form-text text-secondary">Loads the URL in this iframe while keeping the Octarine tools active.</div>
+        </form>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.min.js"
-	    integrity="sha384-G/EV+4j2dNv+tEPo3++6LCgdCROaejBqfUeNjuKAiuXbjrxilcCdDz6ZAVfHWe1Y"
-	    crossorigin="anonymous"></script>
+        <div class="alert alert-dark border-secondary mb-0">
+          <h6 class="alert-heading fw-bold mb-1">Quick Shortcuts</h6>
+          <small class="d-block text-secondary">
+            • <code>`</code> (Backtick) or top-left icon: Open Control Panel<br>
+            • Double click camera view: Fullscreen / Pip toggle<br>
+            • Shift-click camera: Cycle Circle / Rounded / Wide 16:9<br>
+            • Inside Whiteboard: <code>P</code> (Pen), <code>E</code> (Eraser), <code>H</code> (Highlighter), <code>Ctrl+Z</code> (Undo)
+          </small>
+        </div>
+      </div>
+    </div>
 
     <script>
-
       function switchToURL() {
-	  var url = document.getElementById('targeturl').value;
-	  window.location.assign(url);
-	  return false;
+        var url = document.getElementById('targeturl').value;
+        if (url) {
+          window.location.assign(url);
+        }
+        return false;
       }
-
     </script>
-
-    
   </body>
 </html>
-
