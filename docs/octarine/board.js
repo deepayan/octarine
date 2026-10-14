@@ -117,13 +117,18 @@ Octarine.define('board', function (O) {
   }
 
   function getSvgCoordinates(e) {
+    const ctm = svgEl.getScreenCTM();
+    if (ctm) {
+      const pt = svgEl.createSVGPoint();
+      pt.x = e.clientX;
+      pt.y = e.clientY;
+      const svgP = pt.matrixTransform(ctm.inverse());
+      const pressure = e.pressure && e.pressure > 0 ? e.pressure : 0.5;
+      return [svgP.x, svgP.y, pressure];
+    }
     const rect = svgEl.getBoundingClientRect();
-    const scaleX = 1920 / rect.width;
-    const scaleY = 1080 / rect.height;
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
     const pressure = e.pressure && e.pressure > 0 ? e.pressure : 0.5;
-    return [x, y, pressure];
+    return [e.clientX - rect.left, e.clientY - rect.top, pressure];
   }
 
   function setupPointerEvents() {
