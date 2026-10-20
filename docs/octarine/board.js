@@ -419,12 +419,135 @@ Octarine.define('board', function (O) {
     }
   }
 
+  function renderPageSVG(page, background) {
+    const w = page.width || 1920;
+    const h = page.height || 1080;
+    const svg = O.s('svg', {
+      viewBox: `0 0 ${w} ${h}`,
+      width: '100%',
+      height: '100%',
+      xmlns: 'http://www.w3.org/2000/svg'
+    });
+    if (background) {
+      svg.appendChild(O.s('rect', {
+        width: '100%',
+        height: '100%',
+        fill: background
+      }));
+    }
+    const g = O.s('g', { class: 'o-strokes' });
+    if (Array.isArray(page.strokes)) {
+      for (const s of page.strokes) {
+        const el = surface.renderStrokeElement(s);
+        if (el) g.appendChild(el);
+      }
+    }
+    svg.appendChild(g);
+    return svg;
+  }
+
+  function exportPDF() {
+    saveCurrentPageData();
+    const theme = BG_THEMES.find((t) => t.id === st.bg) || BG_THEMES[0];
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.top = '-10000px';
+    iframe.style.left = '-10000px';
+    iframe.style.width = '1920px';
+    iframe.style.height = '1080px';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+
+    let pagesHTML = '';
+    for (let i = 0; i < st.pages.length; i++) {
+      const page = st.pages[i];
+      const svgEl = renderPageSVG(page, theme.color);
+      const svgHtml = svgEl.outerHTML || new XMLSerializer().serializeToString(svgEl);
+      pagesHTML += `<div class="page ${theme.pattern ? 'bg-' + theme.pattern : ''}">${svgHtml}</div>`;
+    }
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Octarine Whiteboard (${O.timestamp()})</title>
+  <style>
+    @page {
+      size: landscape;
+      margin: 0;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: ${theme.color};
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+    .page {
+      width: 100vw;
+      height: 100vh;
+      page-break-after: always;
+      break-after: page;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: ${theme.color};
+      overflow: hidden;
+    }
+    .page:last-child {
+      page-break-after: avoid;
+      break-after: avoid;
+    }
+    .bg-grid {
+      background-size: 40px 40px;
+      background-image: linear-gradient(to right, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+    }
+    .bg-ruled {
+      background-size: 100% 32px;
+      background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+    }
+    svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  ${pagesHTML}
+</body>
+</html>`;
+
+    doc.write(html);
+    doc.close();
+
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      const cleanup = () => {
+        try { iframe.remove(); } catch (e) {}
+      };
+      iframe.contentWindow.addEventListener('afterprint', cleanup, { once: true });
+      setTimeout(cleanup, 60000);
+    }, 250);
+
+    O.toast('Opening print dialog for PDF export...');
+  }
+
   function showExportMenu() {
-    const choice = prompt('Export format:\n1. PNG (current page)\n2. SVG (current page)\n3. JSON (all pages)\n4. Import JSON file', '1');
-    if (choice === '1') exportPNG();
-    else if (choice === '2') exportSVG();
-    else if (choice === '3') exportJSON();
-    else if (choice === '4') importJSON();
+    const choice = prompt('Export format:\n1. PDF (all pages via print)\n2. PNG (current page)\n3. SVG (current page)\n4. JSON (all pages)\n5. Import JSON file', '1');
+    if (choice === '1') exportPDF();
+    else if (choice === '2') exportPNG();
+    else if (choice === '3') exportSVG();
+    else if (choice === '4') exportJSON();
+    else if (choice === '5') importJSON();
   }
 
   function cycleTheme() {
@@ -507,6 +630,7 @@ Octarine.define('board', function (O) {
     prevPage,
     addPage,
     deleteCurrentPage,
+    exportPDF,
     exportPNG,
     exportSVG,
     exportJSON,

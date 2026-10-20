@@ -23,7 +23,7 @@ Everything runs 100% locally in the browser with no server-side requirements.
    - Tools: Pen, Highlighter, Stroke Eraser, Straight Line, Arrow, Rectangle, Ellipse.
    - Themes: Blackboard, Chalkboard green, Whiteboard, Grid, and Ruled lines.
    - Multipage support (add page, previous, next, delete).
-   - Export to PNG, SVG, or JSON; Import JSON sessions; Undo / Redo history.
+   - Export to multi-page PDF (via browser vector print), PNG, SVG, or JSON; Import JSON sessions; Undo / Redo history.
 
 4. **✨ Presentation Slide Annotations**:
    - Transparent annotation overlay with click-through toggle.
