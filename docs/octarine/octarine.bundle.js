@@ -182,7 +182,8 @@ window.PerfectFreehand = exports;
     maximize: '<path d="M8 3H3v5M16 3h5v5M21 16v5h-5M3 16v5h5"/>',
     minimize: '<path d="M3 8h5V3M21 8h-5V3M16 21v-5h5M8 21v-5H3"/>',
     shape: '<circle cx="8" cy="8" r="5"/><rect x="11" y="11" width="10" height="10" rx="2"/>',
-    grip: '<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>'
+    grip: '<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>',
+    theme: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18a9 9 0 0 0 0-18z" fill="currentColor"/>'
   };
   O.ICONS = ICONS;
 
@@ -1679,8 +1680,9 @@ Octarine.define('board', function (O) {
       O.h('button', { class: 'o-btn icon', title: 'Add New Page', onclick: () => addPage() }, O.icon('plus', 18))
     );
 
-    // Export options & Close
+    // Theme, Export options & Close
     const grpExport = O.h('div', { class: 'toolbar-grp' },
+      O.h('button', { class: 'o-btn icon', title: 'Switch Background Theme (T)', onclick: () => cycleTheme() }, O.icon('theme', 18)),
       O.h('button', { class: 'o-btn icon', title: 'Export PNG / SVG / JSON', onclick: () => showExportMenu() }, O.icon('download', 18))
     );
     closeBtn = O.h('button', { class: 'o-btn icon', title: 'Close Board (Esc)', onclick: () => hide() }, O.icon('close', 18));
@@ -1828,17 +1830,19 @@ Octarine.define('board', function (O) {
   }
 
   function showExportMenu() {
-    const choice = prompt('Whiteboard Options:\n1. PNG (current page)\n2. SVG (current page)\n3. JSON (all pages)\n4. Import JSON file\n5. Change background theme', '1');
+    const choice = prompt('Export format:\n1. PNG (current page)\n2. SVG (current page)\n3. JSON (all pages)\n4. Import JSON file', '1');
     if (choice === '1') exportPNG();
     else if (choice === '2') exportSVG();
     else if (choice === '3') exportJSON();
     else if (choice === '4') importJSON();
-    else if (choice === '5') {
-      const themeList = BG_THEMES.map((t, i) => `${i + 1}. ${t.name}`).join('\n');
-      const tc = prompt(`Select background theme:\n${themeList}`, '1');
-      const idx = parseInt(tc, 10) - 1;
-      if (idx >= 0 && idx < BG_THEMES.length) applyTheme(BG_THEMES[idx].id);
-    }
+  }
+
+  function cycleTheme() {
+    const currentIndex = BG_THEMES.findIndex((t) => t.id === st.bg);
+    const nextIndex = (currentIndex + 1) % BG_THEMES.length;
+    const nextTheme = BG_THEMES[nextIndex];
+    applyTheme(nextTheme.id);
+    O.toast(`Theme: ${nextTheme.name}`, 1500);
   }
 
   function show(opts) {
@@ -1894,6 +1898,7 @@ Octarine.define('board', function (O) {
       if (e.key === 'a' || e.key === 'A') { setTool('arrow'); return true; }
       if (e.key === 'r' || e.key === 'R') { setTool('rect'); return true; }
       if (e.key === 'c' || e.key === 'C') { setTool('ellipse'); return true; }
+      if (e.key === 't' || e.key === 'T') { cycleTheme(); return true; }
     }
     return false;
   }, 10);
@@ -1907,6 +1912,7 @@ Octarine.define('board', function (O) {
     setColor,
     setSize,
     applyTheme,
+    cycleTheme,
     nextPage,
     prevPage,
     addPage,
