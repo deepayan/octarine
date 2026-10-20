@@ -40,8 +40,14 @@ Octarine.define('board', function (O) {
     O.storage.set('board_data', st);
   }, 400);
 
+  let standaloneMode = false;
+
+  function isStandalone() {
+    return standaloneMode || !!(O.options && O.options.standalone) || !!(O.options && O.options.board && O.options.board.standalone);
+  }
+
   let host = null, root = null, surface = null;
-  let boardContainer = null, svgEl = null, toolbarEl = null;
+  let boardContainer = null, svgEl = null, toolbarEl = null, closeBtn = null;
   let pageIndicator = null;
   let isPointerDown = false;
 
@@ -266,9 +272,13 @@ Octarine.define('board', function (O) {
 
     // Export options & Close
     const grpExport = O.h('div', { class: 'toolbar-grp' },
-      O.h('button', { class: 'o-btn icon', title: 'Export PNG / SVG', onclick: () => showExportMenu() }, O.icon('download', 18)),
-      O.h('button', { class: 'o-btn icon', title: 'Close Board (Esc)', onclick: () => hide() }, O.icon('close', 18))
+      O.h('button', { class: 'o-btn icon', title: 'Export PNG / SVG / JSON', onclick: () => showExportMenu() }, O.icon('download', 18))
     );
+    closeBtn = O.h('button', { class: 'o-btn icon', title: 'Close Board (Esc)', onclick: () => hide() }, O.icon('close', 18));
+    if (isStandalone()) {
+      closeBtn.style.display = 'none';
+    }
+    grpExport.appendChild(closeBtn);
 
     toolbarEl.append(grpTools, grpColors, grpSizes, grpHistory, grpPages, grpExport);
   }
@@ -409,15 +419,27 @@ Octarine.define('board', function (O) {
   }
 
   function showExportMenu() {
-    const choice = prompt('Export format:\n1. PNG (current page)\n2. SVG (current page)\n3. JSON (all pages)\n4. Import JSON file', '1');
+    const choice = prompt('Whiteboard Options:\n1. PNG (current page)\n2. SVG (current page)\n3. JSON (all pages)\n4. Import JSON file\n5. Change background theme', '1');
     if (choice === '1') exportPNG();
     else if (choice === '2') exportSVG();
     else if (choice === '3') exportJSON();
     else if (choice === '4') importJSON();
+    else if (choice === '5') {
+      const themeList = BG_THEMES.map((t, i) => `${i + 1}. ${t.name}`).join('\n');
+      const tc = prompt(`Select background theme:\n${themeList}`, '1');
+      const idx = parseInt(tc, 10) - 1;
+      if (idx >= 0 && idx < BG_THEMES.length) applyTheme(BG_THEMES[idx].id);
+    }
   }
 
   function show(opts) {
+    if (opts && typeof opts === 'object' && opts.standalone !== undefined) {
+      standaloneMode = !!opts.standalone;
+    }
     build();
+    if (closeBtn) {
+      closeBtn.style.display = isStandalone() ? 'none' : '';
+    }
     if (opts && opts.background) applyTheme(opts.background);
     host.style.display = 'block';
     st.visibility = true;
@@ -426,6 +448,7 @@ Octarine.define('board', function (O) {
   }
 
   function hide() {
+    if (isStandalone()) return;
     if (!host) return;
     host.style.display = 'none';
     st.visibility = false;
@@ -441,7 +464,10 @@ Octarine.define('board', function (O) {
   // Keyboard shortcut integration for whiteboard
   O.addKeyHandler((e) => {
     if (!st.visibility) return false;
-    if (e.key === 'Escape') { hide(); return true; }
+    if (e.key === 'Escape') {
+      if (!isStandalone()) hide();
+      return true;
+    }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
       if (e.shiftKey) surface.redo();
       else surface.undo();

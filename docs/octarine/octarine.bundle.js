@@ -9,6 +9,7 @@ var pe=Object.defineProperty;var ge=e=>pe(e,"__esModule",{value:!0});var de=(e,t
 
 window.PerfectFreehand = exports;
 })();
+
 /*!
  * Octarine — a presentation layer for classrooms.
  * Camera overlay, voice lifter and whiteboard, running entirely in the browser.
@@ -335,6 +336,7 @@ window.PerfectFreehand = exports;
 
   O.load = async function () {
     for (const [name, file] of MODULES) {
+      if (O.options && O.options[name] === false) continue;
       if (!isLoaded(name)) await O.loadScript(BASE + file);
     }
   };
@@ -346,6 +348,7 @@ window.PerfectFreehand = exports;
 
   const DEFAULTS = {
     trigger: 'top-left',  // corner for the control-panel button, or false to hide it
+    panel: true,          // whether to initialize the control panel (set false for standalone board)
     panelKey: '`',        // key that opens/closes the control panel
     hotkeys: true,
     board: false,         // true or {background: 'black'} to show the whiteboard on start
@@ -367,7 +370,7 @@ window.PerfectFreehand = exports;
     if (!initPromise) {
       O.options = Object.assign({}, DEFAULTS, opts);
       initPromise = domReady().then(() => O.load()).then(() => {
-        O.panel.init(O.options);
+        if (O.panel && O.options.panel !== false) O.panel.init(O.options);
         O.emit('ready', O);
         return O;
       });
@@ -375,10 +378,10 @@ window.PerfectFreehand = exports;
       Object.assign(O.options, opts);
     }
     return initPromise.then(() => {
-      if (opts.reveal) O.annotate.attachReveal(opts.reveal);
-      if (opts.remark) O.annotate.attachRemark(opts.remark);
-      if (opts.board) O.board.show(typeof opts.board === 'object' ? opts.board : undefined);
-      if (opts.camera) O.camera.enable();
+      if (opts.reveal && O.annotate) O.annotate.attachReveal(opts.reveal);
+      if (opts.remark && O.annotate) O.annotate.attachRemark(opts.remark);
+      if (opts.board && O.board) O.board.show(typeof opts.board === 'object' ? opts.board : undefined);
+      if (opts.camera && O.camera) O.camera.enable();
       if (opts.hint) O.toast(`Press ${O.options.panelKey} or use the button in the corner for controls`, 5000);
       return O;
     });
@@ -401,6 +404,7 @@ window.PerfectFreehand = exports;
     };
   };
 })();
+
 /*
  * Octarine camera overlay: a draggable, resizable live camera view.
  *
@@ -670,6 +674,7 @@ Octarine.define('camera', function (O) {
     devices, setDevice, state
   };
 });
+
 /*
  * Octarine voice lifter: microphone pass-through to speakers for classroom audio lift.
  * Uses Web Audio API:
@@ -949,6 +954,7 @@ Octarine.define('voice', function (O) {
     state
   };
 });
+
 /*
  * Octarine drawing engine: stroke data model and SVG renderer.
  * Supports:
@@ -1400,6 +1406,7 @@ Octarine.define('draw', function (O) {
     getSvgPathFromStroke
   };
 });
+
 /*
  * Octarine standalone multipage interactive whiteboard / blackboard.
  * Features:
@@ -1410,8 +1417,6 @@ Octarine.define('draw', function (O) {
  */
 Octarine.define('board', function (O) {
   'use strict';
-
-  console.log("creating board");
 
   const BG_THEMES = [
     { id: 'black', name: 'Blackboard', color: '#1a1a1e', text: '#fff' },
@@ -1429,8 +1434,8 @@ Octarine.define('board', function (O) {
 
   const st = Object.assign(
     {
-      tool: 'pen',
       visibility: false,
+      tool: 'pen',
       color: '#ffffff',
       size: 6,
       bg: 'black',
@@ -1440,18 +1445,18 @@ Octarine.define('board', function (O) {
     O.storage.get('board_data', {})
   );
 
-
-  console.log("define board: st");
-  console.log(st);
-
   const saveState = O.debounce(() => {
     O.storage.set('board_data', st);
   }, 400);
 
+  let standaloneMode = false;
 
+  function isStandalone() {
+    return standaloneMode || !!(O.options && O.options.standalone) || !!(O.options && O.options.board && O.options.board.standalone);
+  }
 
   let host = null, root = null, surface = null;
-  let boardContainer = null, svgEl = null, toolbarEl = null;
+  let boardContainer = null, svgEl = null, toolbarEl = null, closeBtn = null;
   let pageIndicator = null;
   let isPointerDown = false;
 
@@ -1676,9 +1681,13 @@ Octarine.define('board', function (O) {
 
     // Export options & Close
     const grpExport = O.h('div', { class: 'toolbar-grp' },
-      O.h('button', { class: 'o-btn icon', title: 'Export PNG / SVG', onclick: () => showExportMenu() }, O.icon('download', 18)),
-      O.h('button', { class: 'o-btn icon', title: 'Close Board (Esc)', onclick: () => hide() }, O.icon('close', 18))
+      O.h('button', { class: 'o-btn icon', title: 'Export PNG / SVG / JSON', onclick: () => showExportMenu() }, O.icon('download', 18))
     );
+    closeBtn = O.h('button', { class: 'o-btn icon', title: 'Close Board (Esc)', onclick: () => hide() }, O.icon('close', 18));
+    if (isStandalone()) {
+      closeBtn.style.display = 'none';
+    }
+    grpExport.appendChild(closeBtn);
 
     toolbarEl.append(grpTools, grpColors, grpSizes, grpHistory, grpPages, grpExport);
   }
@@ -1819,15 +1828,27 @@ Octarine.define('board', function (O) {
   }
 
   function showExportMenu() {
-    const choice = prompt('Export format:\n1. PNG (current page)\n2. SVG (current page)\n3. JSON (all pages)\n4. Import JSON file', '1');
+    const choice = prompt('Whiteboard Options:\n1. PNG (current page)\n2. SVG (current page)\n3. JSON (all pages)\n4. Import JSON file\n5. Change background theme', '1');
     if (choice === '1') exportPNG();
     else if (choice === '2') exportSVG();
     else if (choice === '3') exportJSON();
     else if (choice === '4') importJSON();
+    else if (choice === '5') {
+      const themeList = BG_THEMES.map((t, i) => `${i + 1}. ${t.name}`).join('\n');
+      const tc = prompt(`Select background theme:\n${themeList}`, '1');
+      const idx = parseInt(tc, 10) - 1;
+      if (idx >= 0 && idx < BG_THEMES.length) applyTheme(BG_THEMES[idx].id);
+    }
   }
 
   function show(opts) {
+    if (opts && typeof opts === 'object' && opts.standalone !== undefined) {
+      standaloneMode = !!opts.standalone;
+    }
     build();
+    if (closeBtn) {
+      closeBtn.style.display = isStandalone() ? 'none' : '';
+    }
     if (opts && opts.background) applyTheme(opts.background);
     host.style.display = 'block';
     st.visibility = true;
@@ -1836,6 +1857,7 @@ Octarine.define('board', function (O) {
   }
 
   function hide() {
+    if (isStandalone()) return;
     if (!host) return;
     host.style.display = 'none';
     st.visibility = false;
@@ -1851,7 +1873,10 @@ Octarine.define('board', function (O) {
   // Keyboard shortcut integration for whiteboard
   O.addKeyHandler((e) => {
     if (!st.visibility) return false;
-    if (e.key === 'Escape') { hide(); return true; }
+    if (e.key === 'Escape') {
+      if (!isStandalone()) hide();
+      return true;
+    }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
       if (e.shiftKey) surface.redo();
       else surface.undo();
@@ -1893,6 +1918,7 @@ Octarine.define('board', function (O) {
     BG_THEMES
   };
 });
+
 /*
  * Octarine transparent annotation layer for live slides / web pages.
  * Supports:
@@ -2129,6 +2155,7 @@ Octarine.define('annotate', function (O) {
     isActive: () => host && host.classList.contains('active')
   };
 });
+
 /*
  * Octarine master control panel:
  * A collapsible overlay panel with quick-access badges for:
@@ -2296,6 +2323,7 @@ Octarine.define('panel', function (O) {
     const toggleBtn = O.h('button', {
       class: 'switch-btn',
       onclick: () => {
+        console.log('toggled camera');
         O.camera.toggle();
         updateCameraUI();
       }
@@ -2491,6 +2519,7 @@ Octarine.define('panel', function (O) {
     const toggleBtn = O.h('button', {
       class: 'switch-btn',
       onclick: () => {
+        console.log('toggled annotation');
         O.annotate.toggle();
         toggleBtn.classList.toggle('on', O.annotate.isActive());
         close();

@@ -326,8 +326,8 @@ Octarine.define('panel', function (O) {
     const toggleBtn = O.h('button', {
       class: 'switch-btn',
       onclick: () => {
-        console.log('toggled board [panel.js]');
         O.board.toggle();
+        toggleBtn.classList.toggle('on', O.board.isVisible());
         close();
       }
     }, O.icon('board', 16), O.h('span', {}, 'Open'));

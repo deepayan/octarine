@@ -51,6 +51,23 @@ Include the single bundled script:
 </script>
 ```
 
+### Standalone Whiteboard (`board.html`)
+
+To run the whiteboard as a standalone application without the presentation overlay, live camera, or microphone:
+
+```html
+<script src="https://deepayan.github.io/octarine/octarine/octarine.bundle.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    Octarine.init({
+      board: { standalone: true },
+      panel: false
+    });
+  });
+</script>
+```
+You can also specify an initial theme via query parameter (e.g. `board.html?theme=green` or `board.html?theme=white`).
+
 ### With reveal.js
 
 ```html
@@ -89,3 +106,9 @@ javascript:(function(){
   document.head.appendChild(s);
 })();
 ```
+
+## Development
+
+Use `bundle.py` to propagate any updates to individual javascript files 
+to `octarine.bundle.js`.
+

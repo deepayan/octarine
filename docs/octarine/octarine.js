@@ -324,6 +324,7 @@
 
   O.load = async function () {
     for (const [name, file] of MODULES) {
+      if (O.options && O.options[name] === false) continue;
       if (!isLoaded(name)) await O.loadScript(BASE + file);
     }
   };
@@ -335,6 +336,7 @@
 
   const DEFAULTS = {
     trigger: 'top-left',  // corner for the control-panel button, or false to hide it
+    panel: true,          // whether to initialize the control panel (set false for standalone board)
     panelKey: '`',        // key that opens/closes the control panel
     hotkeys: true,
     board: false,         // true or {background: 'black'} to show the whiteboard on start
@@ -356,7 +358,7 @@
     if (!initPromise) {
       O.options = Object.assign({}, DEFAULTS, opts);
       initPromise = domReady().then(() => O.load()).then(() => {
-        O.panel.init(O.options);
+        if (O.panel && O.options.panel !== false) O.panel.init(O.options);
         O.emit('ready', O);
         return O;
       });
@@ -364,10 +366,10 @@
       Object.assign(O.options, opts);
     }
     return initPromise.then(() => {
-      if (opts.reveal) O.annotate.attachReveal(opts.reveal);
-      if (opts.remark) O.annotate.attachRemark(opts.remark);
-      if (opts.board) O.board.show(typeof opts.board === 'object' ? opts.board : undefined);
-      if (opts.camera) O.camera.enable();
+      if (opts.reveal && O.annotate) O.annotate.attachReveal(opts.reveal);
+      if (opts.remark && O.annotate) O.annotate.attachRemark(opts.remark);
+      if (opts.board && O.board) O.board.show(typeof opts.board === 'object' ? opts.board : undefined);
+      if (opts.camera && O.camera) O.camera.enable();
       if (opts.hint) O.toast(`Press ${O.options.panelKey} or use the button in the corner for controls`, 5000);
       return O;
     });
