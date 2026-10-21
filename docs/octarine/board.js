@@ -17,9 +17,37 @@ Octarine.define('board', function (O) {
     { id: 'ruled', name: 'Ruled', color: '#fcfbfa', text: '#111', pattern: 'ruled' }
   ];
 
-  const PALETTE = [
+  const DARK_PALETTE = [
     '#ffffff', '#ff5252', '#ffeb3b', '#69f0ae', '#40c4ff', '#e040fb', '#ff9800', '#212121'
   ];
+
+  const LIGHT_PALETTE = [
+    '#111111', '#c62828', '#b45309', '#1b5e20', '#0d47a1', '#6a1b9a', '#bf360c', '#ffffff'
+  ];
+
+  function isWhiteTheme(themeId) {
+    return themeId === 'white' || themeId === 'ruled';
+  }
+
+  function mapColor(color, toLight) {
+    if (!color) return toLight ? '#111111' : '#ffffff';
+    const norm = color.toLowerCase().trim();
+    const fromList = toLight ? DARK_PALETTE : LIGHT_PALETTE;
+    const toList = toLight ? LIGHT_PALETTE : DARK_PALETTE;
+    const idx = fromList.findIndex((c) => c.toLowerCase() === norm);
+    if (idx !== -1) return toList[idx];
+
+    const alreadyInTarget = toList.findIndex((c) => c.toLowerCase() === norm);
+    if (alreadyInTarget !== -1) return norm;
+
+    if (/^#[0-9a-f]{6}$/i.test(norm)) {
+      const r = 255 - parseInt(norm.slice(1, 3), 16);
+      const g = 255 - parseInt(norm.slice(3, 5), 16);
+      const b = 255 - parseInt(norm.slice(5, 7), 16);
+      return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+    return toLight ? '#111111' : '#ffffff';
+  }
 
   const SIZES = [3, 6, 12, 24];
 
@@ -36,6 +64,10 @@ Octarine.define('board', function (O) {
     O.storage.get('board_data', {})
   );
 
+  if (isWhiteTheme(st.bg) && st.color.toLowerCase() === '#ffffff') {
+    st.color = '#111111';
+  }
+
   const saveState = O.debounce(() => {
     O.storage.set('board_data', st);
   }, 400);
@@ -47,9 +79,24 @@ Octarine.define('board', function (O) {
   }
 
   let host = null, root = null, surface = null;
-  let boardContainer = null, svgEl = null, toolbarEl = null, closeBtn = null;
+  let boardContainer = null, svgEl = null, toolbarEl = null, closeBtn = null, grpColors = null;
   let pageIndicator = null;
   let isPointerDown = false;
+
+  function renderPaletteSwatches() {
+    if (!grpColors) return;
+    grpColors.innerHTML = '';
+    const currentPalette = isWhiteTheme(st.bg) ? LIGHT_PALETTE : DARK_PALETTE;
+    currentPalette.forEach((c) => {
+      const sw = O.h('button', {
+        class: `swatch ${st.color.toLowerCase() === c.toLowerCase() ? 'active' : ''}`,
+        style: { background: c, color: c },
+        onclick: () => setColor(c)
+      });
+      sw.dataset.color = c;
+      grpColors.appendChild(sw);
+    });
+  }
 
   const CSS = `
     :host { position: fixed; inset: 0; z-index: 2147483000; display: none; touch-action: none; user-select: none; }
@@ -225,16 +272,8 @@ Octarine.define('board', function (O) {
     });
 
     // Color Swatches
-    const grpColors = O.h('div', { class: 'toolbar-grp' });
-    PALETTE.forEach((c) => {
-      const sw = O.h('button', {
-        class: `swatch ${st.color.toLowerCase() === c.toLowerCase() ? 'active' : ''}`,
-        style: { background: c, color: c },
-        onclick: () => setColor(c)
-      });
-      sw.dataset.color = c;
-      grpColors.appendChild(sw);
-    });
+    grpColors = O.h('div', { class: 'toolbar-grp' });
+    renderPaletteSwatches();
 
     // Stroke size
     const grpSizes = O.h('div', { class: 'toolbar-grp' });
@@ -294,9 +333,11 @@ Octarine.define('board', function (O) {
 
   function setColor(color) {
     st.color = color;
-    toolbarEl.querySelectorAll('.swatch').forEach((el) => {
-      el.classList.toggle('active', el.dataset.color.toLowerCase() === color.toLowerCase());
-    });
+    if (grpColors) {
+      grpColors.querySelectorAll('.swatch').forEach((el) => {
+        el.classList.toggle('active', el.dataset.color.toLowerCase() === color.toLowerCase());
+      });
+    }
     saveState();
   }
 
@@ -309,18 +350,43 @@ Octarine.define('board', function (O) {
   }
 
   function applyTheme(themeId) {
+    const oldBg = st.bg;
     st.bg = themeId;
     const theme = BG_THEMES.find((t) => t.id === themeId) || BG_THEMES[0];
-    boardContainer.style.backgroundColor = theme.color;
-    boardContainer.classList.toggle('bg-grid', theme.pattern === 'grid');
-    boardContainer.classList.toggle('bg-ruled', theme.pattern === 'ruled');
-
-    // Default pen color adjustment if contrast is inverted
-    if (theme.id === 'white' && st.color === '#ffffff') {
-      setColor('#212121');
-    } else if (theme.id !== 'white' && st.color === '#212121') {
-      setColor('#ffffff');
+    if (boardContainer) {
+      boardContainer.style.backgroundColor = theme.color;
+      boardContainer.classList.toggle('bg-grid', theme.pattern === 'grid');
+      boardContainer.classList.toggle('bg-ruled', theme.pattern === 'ruled');
     }
+
+    const wasWhite = isWhiteTheme(oldBg);
+    const isNowWhite = isWhiteTheme(themeId);
+
+    if (wasWhite !== isNowWhite) {
+      // Invert active pen color
+      st.color = mapColor(st.color, isNowWhite);
+
+      // Save latest strokes on current active page
+      saveCurrentPageData();
+
+      // Convert all strokes in all pages
+      for (const page of st.pages) {
+        if (Array.isArray(page.strokes)) {
+          for (const stroke of page.strokes) {
+            stroke.color = mapColor(stroke.color, isNowWhite);
+          }
+        }
+      }
+
+      // Re-render active surface immediately with new stroke colors
+      if (surface && st.pages[st.currentPage]) {
+        surface.fromJSON(st.pages[st.currentPage]);
+      }
+
+      // Re-render the palette swatches in the toolbar
+      renderPaletteSwatches();
+    }
+
     saveState();
   }
 
@@ -635,6 +701,8 @@ Octarine.define('board', function (O) {
     exportSVG,
     exportJSON,
     importJSON,
-    BG_THEMES
+    BG_THEMES,
+    DARK_PALETTE,
+    LIGHT_PALETTE
   };
 });
