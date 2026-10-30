@@ -5,6 +5,8 @@
  *   wheel / handle  resize
  *   shift+click     cycle shape (circle, rounded square, wide)
  *   double-click    toggle large (near full-screen) view
+ *   Alt+C           toggle camera on/off
+ *   hover top-left  unobtrusive corner trigger to restore camera when off
  */
 Octarine.define('camera', function (O) {
   'use strict';
@@ -18,8 +20,98 @@ Octarine.define('camera', function (O) {
   );
   const save = O.debounce(() => O.storage.set('camera', st), 300);
 
-  let host = null, video = null, msg = null, fullBtn = null;
+  let host = null, video = null, msg = null, fullBtn = null, devBtn = null;
   let stream = null, enabled = false, full = false;
+  let standaloneMode = true;
+
+  /* ---------------- Standalone Hover Trigger ---------------- */
+  let triggerHost = null, triggerBtn = null;
+  let triggerVisible = false, hideTimer = null;
+
+  const TRIGGER_CSS = `
+    :host {
+      position: fixed; top: 0; left: 0; width: 0; height: 0;
+      z-index: 2147483647; pointer-events: none;
+    }
+    .trigger-btn {
+      position: fixed; top: 10px; left: 10px; width: 38px; height: 38px; border-radius: 50%;
+      background: rgba(26, 26, 32, 0.9); color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; opacity: 0; transform: scale(0.85);
+      transition: opacity 0.25s ease, transform 0.25s ease, background 0.2s ease, border-color 0.2s ease;
+      pointer-events: none;
+    }
+    .trigger-btn.visible {
+      opacity: 1; transform: scale(1); pointer-events: auto;
+    }
+    .trigger-btn:hover {
+      background: #7c5cff; border-color: #a288ff; transform: scale(1.08);
+    }
+    .trigger-btn svg { display: block; pointer-events: none; }
+  `;
+
+  function buildTrigger() {
+    if (triggerHost || !document.body) return;
+    const created = O.createHost('camera-trigger', TRIGGER_CSS);
+    triggerHost = created.host;
+    const root = created.root;
+
+    triggerBtn = O.h('button', {
+      class: 'trigger-btn',
+      title: 'Turn camera on (Alt+C)',
+      onpointerdown: (e) => e.stopPropagation(),
+      onclick: (e) => {
+        e.stopPropagation();
+        toggle();
+      }
+    }, O.icon('camera', 20));
+
+    root.appendChild(triggerBtn);
+
+    triggerBtn.addEventListener('pointerenter', () => {
+      clearTimeout(hideTimer);
+      triggerVisible = true;
+      triggerBtn.classList.add('visible');
+    });
+
+    triggerBtn.addEventListener('pointerleave', () => {
+      hideTimer = setTimeout(() => {
+        triggerVisible = false;
+        triggerBtn.classList.remove('visible');
+      }, 350);
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!standaloneMode) return;
+      if (enabled) {
+        if (triggerVisible) {
+          triggerVisible = false;
+          triggerBtn.classList.remove('visible');
+        }
+        return;
+      }
+      // Hover zone in extreme top-left (<= 50px)
+      const inZone = e.clientX <= 50 && e.clientY <= 50;
+      if (inZone) {
+        clearTimeout(hideTimer);
+        if (!triggerVisible) {
+          triggerVisible = true;
+          triggerBtn.classList.add('visible');
+        }
+      } else if (triggerVisible) {
+        if (e.clientX > 80 || e.clientY > 80) {
+          clearTimeout(hideTimer);
+          hideTimer = setTimeout(() => {
+            triggerVisible = false;
+            triggerBtn.classList.remove('visible');
+          }, 300);
+        }
+      }
+    }, { passive: true });
+  }
 
   const CSS = `
     :host { position: fixed; z-index: 2147483100; display: none;
@@ -37,7 +129,8 @@ Octarine.define('camera', function (O) {
            color: #aaa; text-align: center; padding: 12px; pointer-events: none; }
     .controls { position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%);
                 display: flex; gap: 2px; padding: 3px; border-radius: 10px;
-                background: rgba(0,0,0,.55); opacity: 0; transition: opacity .2s; }
+                background: rgba(0,0,0,.65); opacity: 0; transition: opacity .2s;
+                backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.15); }
     .controls .o-btn { background: transparent; color: #fff; height: 28px; min-width: 28px; width: 28px; padding: 0; }
     .controls .o-btn:hover { background: rgba(255,255,255,.2); }
     .resize { position: absolute; right: 0; bottom: 0; width: 22px; height: 22px; border-radius: 50%;
@@ -102,7 +195,35 @@ Octarine.define('camera', function (O) {
     }, O.icon(icon, 16));
   }
 
+  async function checkMultipleDevices() {
+    if (!devBtn) return;
+    try {
+      const list = await devices();
+      devBtn.style.display = list.length > 1 ? '' : 'none';
+      if (list.length > 1) {
+        devBtn.title = `Switch camera device (${list.length} available)`;
+      }
+    } catch (e) {
+      devBtn.style.display = 'none';
+    }
+  }
+
+  async function cycleDevice() {
+    const list = await devices();
+    if (list.length <= 1) {
+      O.toast('Only 1 camera detected');
+      return;
+    }
+    const currentIdx = list.findIndex((d) => d.id === st.deviceId);
+    const nextIdx = (currentIdx + 1) % list.length;
+    const next = list[nextIdx];
+    await setDevice(next.id);
+    O.toast(`Camera: ${next.label || 'Camera ' + (nextIdx + 1)}`, 2000);
+  }
+
   function build() {
+    buildTrigger();
+
     const created = O.createHost('camera', CSS);
     host = created.host;
     const root = created.root;
@@ -114,8 +235,13 @@ Octarine.define('camera', function (O) {
     box.append(video, msg);
 
     fullBtn = button('maximize', '', toggleFull);
+    devBtn = button('camera', 'Switch camera', cycleDevice);
+    devBtn.style.display = 'none';
+
     const controls = O.h('div', { class: 'controls o-ui' },
       button('shape', 'Change shape (shift+click)', cycleShape),
+      button('flip', 'Mirror feed', toggleMirror),
+      devBtn,
       fullBtn,
       button('close', 'Turn camera off', disable));
     const resize = O.h('div', { class: 'resize', title: 'Drag to resize' });
@@ -191,6 +317,7 @@ Octarine.define('camera', function (O) {
     }
     enabled = true;
     if (!host) build();
+    if (triggerBtn) triggerBtn.classList.remove('visible');
     msg.textContent = 'Starting camera…';
     msg.style.display = '';
     host.style.display = 'block';
@@ -202,6 +329,7 @@ Octarine.define('camera', function (O) {
       video.srcObject = stream;
       msg.style.display = 'none';
       stream.getVideoTracks()[0].addEventListener('ended', () => disable());
+      checkMultipleDevices();
     } catch (err) {
       O.toast('Camera failed: ' + (err.message || err.name));
       disable();
@@ -218,6 +346,11 @@ Octarine.define('camera', function (O) {
     emit();
   }
 
+  function toggle() {
+    if (enabled) disable();
+    else enable();
+  }
+
   /* ---------------- options ---------------- */
 
   function setShape(shape) {
@@ -228,6 +361,7 @@ Octarine.define('camera', function (O) {
   }
   function cycleShape() { setShape(SHAPES[(SHAPES.indexOf(st.shape) + 1) % SHAPES.length]); }
   function setMirror(on) { st.mirror = !!on; layout(); save(); emit(); }
+  function toggleMirror() { setMirror(!st.mirror); }
   function toggleFull() { if (!enabled) return; full = !full; layout(); emit(); }
 
   async function devices() {
@@ -245,6 +379,7 @@ Octarine.define('camera', function (O) {
       try {
         stream = await openStream();
         video.srcObject = stream;
+        checkMultipleDevices();
       } catch (err) {
         O.toast('Camera failed: ' + (err.message || err.name));
         disable();
@@ -253,17 +388,53 @@ Octarine.define('camera', function (O) {
     emit();
   }
 
+  function setStandalone(val) {
+    standaloneMode = !!val;
+    if (!standaloneMode && triggerBtn) {
+      triggerBtn.classList.remove('visible');
+    }
+  }
+
   function state() {
     return { enabled, full, shape: st.shape, mirror: st.mirror, size: st.size, deviceId: st.deviceId };
   }
   function emit() { O.emit('camera:change', state()); }
 
-  return {
+  // Keyboard shortcut integration: Alt+C toggles camera, Escape restores small view
+  O.addKeyHandler((e) => {
+    if (e.altKey && (e.key === 'c' || e.key === 'C')) {
+      toggle();
+      return true;
+    }
+    if (e.key === 'Escape' && full) {
+      toggleFull();
+      return true;
+    }
+    return false;
+  }, 10);
+
+  // Initialize trigger host if DOM is already ready
+  if (document.readyState !== 'loading') {
+    buildTrigger();
+  } else {
+    document.addEventListener('DOMContentLoaded', buildTrigger, { once: true });
+  }
+
+  const api = {
     SHAPES,
-    enable, disable,
-    toggle: () => (enabled ? disable() : enable()),
+    enable, disable, toggle,
     isEnabled: () => enabled,
-    setShape, cycleShape, setMirror, toggleFull, setSize: resizeTo,
-    devices, setDevice, state
+    setShape, cycleShape,
+    setMirror, toggleMirror,
+    toggleFull, setSize: resizeTo,
+    devices, setDevice, cycleDevice,
+    setStandalone,
+    state
   };
+
+  if (typeof window !== 'undefined') {
+    window.OctarineCamera = api;
+  }
+
+  return api;
 });

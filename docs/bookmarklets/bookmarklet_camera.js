@@ -1,0 +1,1 @@
+javascript:(function(){if(window.OctarineCamera){window.OctarineCamera.toggle();return;}const s=document.createElement('script');s.src='https://deepayan.github.io/octarine/octarine/camera.bundle.js';s.onload=function(){if(window.OctarineCamera)window.OctarineCamera.enable();};document.head.appendChild(s);})();

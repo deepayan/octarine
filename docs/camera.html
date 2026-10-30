@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Octarine Camera Overlay</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --card-bg: #1a1c24;
+      --border: rgba(255, 255, 255, 0.1);
+      --accent: #7c5cff;
+      --accent-hover: #9275ff;
+      --text: #f0f0f4;
+      --text-muted: #9aa0a6;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      line-height: 1.6;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 840px;
+      padding: 40px 24px 80px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    h1 {
+      font-size: 2.4rem;
+      margin: 0 0 10px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .tagline {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      margin: 0 0 24px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      font-size: 0.95rem;
+    }
+
+    .nav-links a {
+      color: var(--accent-hover);
+      text-decoration: none;
+    }
+    .nav-links a:hover { text-decoration: underline; }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 28px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    }
+
+    .card h2 {
+      margin-top: 0;
+      font-size: 1.35rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Bookmarklet button */
+    .bookmarklet-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+      background: rgba(124, 92, 255, 0.08);
+      border: 2px dashed rgba(124, 92, 255, 0.4);
+      border-radius: 12px;
+      margin: 20px 0;
+      text-align: center;
+    }
+
+    .bookmarklet-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 28px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #fff;
+      background: var(--accent);
+      border-radius: 10px;
+      text-decoration: none;
+      cursor: grab;
+      box-shadow: 0 4px 20px rgba(124, 92, 255, 0.4);
+      transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+    }
+
+    .bookmarklet-btn:hover {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(124, 92, 255, 0.55);
+    }
+
+    .bookmarklet-btn:active {
+      cursor: grabbing;
+      transform: translateY(1px);
+    }
+
+    .instructions-step {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-top: 12px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    button.action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #eee;
+      border: 1px solid var(--border);
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    button.action-btn:hover {
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    button.action-btn.primary {
+      background: #2e7d32;
+      border-color: #43a047;
+      color: #fff;
+    }
+    button.action-btn.primary:hover {
+      background: #388e3c;
+    }
+
+    /* Code block */
+    pre.code-block {
+      background: #121318;
+      border: 1px solid var(--border);
+      padding: 14px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #a5d6a7;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin: 12px 0;
+    }
+
+    /* Feature grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .feature-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      padding: 16px;
+      border-radius: 10px;
+    }
+
+    .feature-item h3 {
+      margin: 0 0 6px;
+      font-size: 1rem;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .feature-item p {
+      margin: 0;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e1e24;
+      color: #fff;
+      border: 1px solid var(--accent);
+      padding: 10px 20px;
+      border-radius: 8px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      font-size: 0.95rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s, transform 0.25s;
+      z-index: 2147483647;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-6px);
+    }
+  </style>
+  <script src="octarine/camera.bundle.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📹 Octarine Camera Overlay</h1>
+      <p class="tagline">Draggable, resizable, shape-shifting webcam overlay for any webpage.</p>
+      <div class="nav-links">
+        <a href="index.html">← Octarine Suite</a>
+        <a href="board.html">Standalone Whiteboard</a>
+        <a href="https://github.com/deepayan/octarine" target="_blank">GitHub</a>
+      </div>
+    </header>
+
+    <!-- Bookmarklet Installation -->
+    <div class="card">
+      <h2>1. Get the Bookmarklet</h2>
+      <p>Drag the button below directly into your browser's <strong>Bookmarks Bar</strong> (press <code>Ctrl+Shift+B</code> or <code>Cmd+Shift+B</code> if your bookmarks bar is hidden):</p>
+
+      <div class="bookmarklet-box">
+        <a id="bookmarklet-link" class="bookmarklet-btn" href="#">📹 Octarine Cam</a>
+        <div class="instructions-step">⬆️ Drag this button to your bookmarks bar ⬆️</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="action-btn" id="copy-code-btn">📋 Copy Bookmarklet Code</button>
+        <button class="action-btn primary" id="test-live-btn">▶️ Test Camera Live Here</button>
+      </div>
+
+      <div style="margin-top: 20px;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 6px;">
+          Script Source URL:
+        </label>
+        <input type="text" id="script-url-input" style="width: 100%; padding: 8px 12px; background: #121318; border: 1px solid var(--border); border-radius: 6px; color: #eee; font-family: monospace; font-size: 0.88rem;" />
+      </div>
+    </div>
+
+    <!-- Features & Shortcuts -->
+    <div class="card">
+      <h2>2. Controls & Shortcuts</h2>
+      <div class="grid">
+        <div class="feature-item">
+          <h3>🖐️ Move & Reposition</h3>
+          <p>Click and drag anywhere on the camera view to position it anywhere on screen.</p>
+        </div>
+        <div class="feature-item">
+          <h3>📐 Smooth Resize</h3>
+          <p>Drag the bottom-right circular handle, or simply scroll your mouse wheel over the camera.</p>
+        </div>
+        <div class="feature-item">
+          <h3>🔄 Multiple Shapes</h3>
+          <p>Click the shape icon or Shift+Click the camera to cycle Circle, Rounded Square, and 16:9 Wide.</p>
+        </div>
+        <div class="feature-item">
+          <h3>🪞 Mirror Feed</h3>
+          <p>Click the flip button in the overlay controls to mirror your camera horizontally.</p>
+        </div>
+        <div class="feature-item">
+          <h3>📺 Presenter Fullscreen</h3>
+          <p>Double-click the camera view or click the maximize button for near full-screen mode. Press <code>Escape</code> to return.</p>
+        </div>
+        <div class="feature-item">
+          <h3>📹 Multi-Camera Switch</h3>
+          <p>If you have multiple webcams (e.g. built-in and document camera), a switch camera button appears automatically.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Unobtrusive Recovery -->
+    <div class="card">
+      <h2>3. Unobtrusive Recovery (When Camera is Turned Off)</h2>
+      <p>When you click the <strong>× (Close)</strong> button on the overlay, the webcam stops completely (the webcam light turns off). To bring it back at any time:</p>
+      <ul>
+        <li><strong>Top-Left Corner Hover</strong>: Move your mouse cursor into the extreme top-left corner of your browser window. A floating camera button will smoothly appear—click it to turn the camera back on!</li>
+        <li><strong>Keyboard Shortcut</strong>: Press <kbd style="background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px;">Alt+C</kbd> to toggle the camera on or off anytime.</li>
+        <li><strong>Bookmarklet</strong>: Click the bookmark in your bookmarks bar again to toggle.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">Code copied to clipboard!</div>
+
+  <script>
+    // Compute default script URL (using current origin for local dev, or GitHub Pages)
+    const currentOrigin = window.location.origin;
+    const isLocal = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1');
+    const defaultUrl = isLocal
+      ? currentOrigin + window.location.pathname.replace(/[^/]*$/, '') + 'octarine/camera.bundle.js'
+      : 'https://deepayan.github.io/octarine/octarine/camera.bundle.js';
+
+    const urlInput = document.getElementById('script-url-input');
+    const link = document.getElementById('bookmarklet-link');
+    const copyBtn = document.getElementById('copy-code-btn');
+    const testBtn = document.getElementById('test-live-btn');
+    const toast = document.getElementById('toast');
+
+    urlInput.value = defaultUrl;
+
+    function getBookmarkletCode(srcUrl) {
+      return `javascript:(function(){if(window.OctarineCamera){window.OctarineCamera.toggle();return;}const s=document.createElement('script');s.src='${srcUrl}';s.onload=function(){if(window.OctarineCamera)window.OctarineCamera.enable();};document.head.appendChild(s);})();`;
+    }
+
+    function updateBookmarklet() {
+      const code = getBookmarkletCode(urlInput.value.trim());
+      link.href = code;
+    }
+
+    urlInput.addEventListener('input', updateBookmarklet);
+    updateBookmarklet();
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    copyBtn.addEventListener('click', () => {
+      const code = getBookmarkletCode(urlInput.value.trim());
+      navigator.clipboard.writeText(code).then(() => {
+        showToast('Bookmarklet code copied to clipboard!');
+      }).catch(() => {
+        prompt('Copy bookmarklet code:', code);
+      });
+    });
+
+    testBtn.addEventListener('click', () => {
+      if (window.OctarineCamera) {
+        window.OctarineCamera.toggle();
+      }
+    });
+  </script>
+</body>
+</html>
